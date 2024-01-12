@@ -1,0 +1,21 @@
+module.exports = {
+    root: "/",
+    home: "/home",
+    login: "/login",
+    register: "register",
+    dashboard: "/dashboard",
+    auth: "/auth",
+    register: "/register",
+    user: "/user",
+    profesor: "/profesor",
+    createProfesor: "/create-teacher",
+    materias: "/materias",
+    matriculas: "/matriculas",
+    matricula: "/matricula",
+    register: "/register",
+    alumnos: "/alumnos",
+    alumno: "/alumno",
+    matriculas: '/matriculas',
+    bitacora: '/bitacora',
+    secciones: '/secciones'
+};
