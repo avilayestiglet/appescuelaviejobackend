@@ -1,15 +1,15 @@
-const apiService  = {};
+const apiService = {};
 const sql = require("mssql");
 const config = require("../config/config");
 
-const { conn, pool } = require('../config/conn');
-const { 
-  userLoginQuery, 
-  userMatriculaQuery, 
-  profesoresAllQuery, 
-  profesoresIdQuery, 
-  materiasAllQuery, 
-  materiasIdQuery, 
+const { conn, pool } = require("../config/conn");
+const {
+  userLoginQuery,
+  userMatriculaQuery,
+  profesoresAllQuery,
+  profesoresIdQuery,
+  materiasAllQuery,
+  materiasIdQuery,
   matriculasQuery,
   registerQuery,
   alumnoAllQuery,
@@ -20,26 +20,33 @@ const {
   userQueryEmail,
   registerBitacoraQuery,
   getBitacoraQuery,
-  createMatriculaQuery} = require('../querys/querys')
+  getTotalBitacoraCount,
+  createMatriculaQuery,
+  getTotalProfesorCount,
+} = require("../querys/querys");
 
 apiService.getUserLoginService = async ({ user }) => {
-    try {
-      console.log(`este es el usuario del frontend ${JSON.stringify(user)}`);
-      const connection = await conn();
-      const result = await connection.request().query(userLoginQuery({user: user}));
-      connection.close();
-      console.log(result.recordset);
-      return { success: true, data: result.recordset };
-    } catch (error) {
-      console.log(error.message);
-      return { success: false, message: error.message };
-    }
+  try {
+    console.log(`este es el usuario del frontend ${JSON.stringify(user)}`);
+    const connection = await conn();
+    const result = await connection
+      .request()
+      .query(userLoginQuery({ user: user }));
+    connection.close();
+    console.log(result.recordset);
+    return { success: true, data: result.recordset };
+  } catch (error) {
+    console.log(error.message);
+    return { success: false, message: error.message };
+  }
 };
 
 apiService.registerService = async ({ user }) => {
   try {
     const connection = await conn();
-    const result = await connection.request().query(registerQuery({user: user}));
+    const result = await connection
+      .request()
+      .query(registerQuery({ user: user }));
     console.log(result);
     connection.close();
     return { success: true, data: result.recordset };
@@ -52,7 +59,9 @@ apiService.registerService = async ({ user }) => {
 apiService.registerBitacoraService = async ({ user, activity }) => {
   try {
     const connection = await conn();
-    const result = await connection.request().query(registerBitacoraQuery({user: user, activity: activity}));
+    const result = await connection
+      .request()
+      .query(registerBitacoraQuery({ user: user, activity: activity }));
     console.log(result);
     connection.close();
     return { success: true, data: result.recordset };
@@ -61,7 +70,6 @@ apiService.registerBitacoraService = async ({ user, activity }) => {
     return { success: false, message: error.message };
   }
 };
-
 
 apiService.createMatriculaService = async (matricula) => {
   const conn = await sql.connect(config);
@@ -79,7 +87,7 @@ apiService.createMatriculaService = async (matricula) => {
     }
     return { success: false, message: error.message };
   }
-}
+};
 
 apiService.createProfesorService = async ({ user }) => {
   const conn = await sql.connect(config);
@@ -87,43 +95,51 @@ apiService.createProfesorService = async ({ user }) => {
   try {
     await transaction.begin(); // Inicia la transacción
     const getUser = await conn.request().query(userQueryEmail({ user }));
-    if(getUser.recordset.length!=0){
-      if(transaction){
-        await transaction.rollback(); 
+    if (getUser.recordset.length != 0) {
+      if (transaction) {
+        await transaction.rollback();
       }
-      return { success: true, error: 'Este correo ya éxiste' };
+      return { success: true, error: "Este correo ya éxiste" };
     }
     user.id_tipo = 2;
     const register = await conn.request().query(registerQuery({ user }));
 
     var isRegister = register?.rowsAffected[0] != 0 ? true : false;
-    if(!isRegister){
-      if(transaction){
-        await transaction.rollback(); 
+    if (!isRegister) {
+      if (transaction) {
+        await transaction.rollback();
       }
-      return { success: true, error: 'No se pudo registrar el usuario' };
+      return { success: true, error: "No se pudo registrar el usuario" };
     }
     const getUser2 = await conn.request().query(userQueryEmail({ user }));
     const resultUser = getUser2?.recordset[0];
-    if(!resultUser){
-      if(transaction){
-        await transaction.rollback(); 
+    if (!resultUser) {
+      if (transaction) {
+        await transaction.rollback();
       }
-      return { success: true, error: 'El usuario no éxiste o no se logró registrar correctamente' };
+      return {
+        success: true,
+        error: "El usuario no éxiste o no se logró registrar correctamente",
+      };
     }
-    
-    user.id_usuario = resultUser.id_usuario;
-    const registerProfesor = await conn.request().query(profesorCreatequery({ profesor: user }));
 
-    var isRegisterProfesor = registerProfesor?.rowsAffected[0] != 0 ? true : false;
-    if(!isRegisterProfesor){
-      if(transaction){
-        await transaction.rollback(); 
+    user.id_usuario = resultUser.id_usuario;
+    const registerProfesor = await conn
+      .request()
+      .query(profesorCreatequery({ profesor: user }));
+
+    var isRegisterProfesor =
+      registerProfesor?.rowsAffected[0] != 0 ? true : false;
+    if (!isRegisterProfesor) {
+      if (transaction) {
+        await transaction.rollback();
       }
-      return { success: true, error: 'No se pudo registrar el profesor' };
+      return { success: true, error: "No se pudo registrar el profesor" };
     }
-    const profesor = await apiService.getProfesoresService({ filters: {email: user.email}});
-    
+    const profesor = await apiService.getProfesoresService({
+      filters: { email: user.email },
+    });
+
     await transaction.commit(); // Confirma la transacción
     return { success: true, data: profesor.data[0] };
   } catch (error) {
@@ -142,7 +158,11 @@ apiService.getMatriculasService = async ({ filters }) => {
     let sqlQuery = matriculasQuery();
     let values = {};
 
-    if (filters && typeof filters === "object" && Object.keys(filters).length > 0) {
+    if (
+      filters &&
+      typeof filters === "object" &&
+      Object.keys(filters).length > 0
+    ) {
       let whereClause = "";
       let i = 0;
       for (const [key, value] of Object.entries(filters)) {
@@ -160,18 +180,6 @@ apiService.getMatriculasService = async ({ filters }) => {
     }
     const connection = await conn();
     const result = await connection.request().query(sqlQuery);
-    connection.close();
-    return {success: true, data: result.recordset };
-  } catch (error) {
-    console.log(error.message);
-    return{ success: false, message: error.message };
-  }
-};
-
-apiService.getTipoUsuario = async ({ user }) => {
-  try {
-    const connection = await conn();
-    const result = await connection.request().query(tipoUsuarioQuery({user: user}));
     connection.close();
     return { success: true, data: result.recordset };
   } catch (error) {
@@ -180,49 +188,70 @@ apiService.getTipoUsuario = async ({ user }) => {
   }
 };
 
-
-apiService.getUserService = async ({ user }) => {
-    try {
-      const connection = await conn();
-      const result = await connection.request().query(userMatriculaQuery({user: user}));
-      connection.close();
-      return { success: true, data: result.recordset };
-    } catch (error) {
-      console.log(error.message);
-      return { success: false, message: error.message };
-    }
-};
-
-
-apiService.getProfesoresService = async ({ filters }) => {
+apiService.getTipoUsuario = async ({ user }) => {
   try {
-    let sqlQuery = profesoresAllQuery();
-    let values = {};
-
-    if (filters && typeof filters === "object" && Object.keys(filters).length > 0) {
-      let whereClause = "";
-      let i = 0;
-      for (const [key, value] of Object.entries(filters)) {
-        if (typeof value === "string" && value.trim() !== "") {
-          if (i === 0) {
-            whereClause += ` WHERE ${key} LIKE '${value}%'`;
-          } else {
-            whereClause += ` AND ${key} LIKE '${value}%'`;
-          }
-          values[key] = `%${value}%`;
-          i++;
-        }
-      }
-      sqlQuery += whereClause;
-    }
-    console.log(sqlQuery);
     const connection = await conn();
-    const result = await connection.request().query(sqlQuery);
+    const result = await connection
+      .request()
+      .query(tipoUsuarioQuery({ user: user }));
     connection.close();
-    return {success: true, data: result.recordset };
+    return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
+  }
+};
+
+apiService.getUserService = async ({ user }) => {
+  try {
+    const connection = await conn();
+    const result = await connection
+      .request()
+      .query(userMatriculaQuery({ user: user }));
+    connection.close();
+    return { success: true, data: result.recordset };
+  } catch (error) {
+    console.log(error.message);
+    return { success: false, message: error.message };
+  }
+};
+
+apiService.getProfesoresService = async ({ filters, page, limit }) => {
+  try {
+    const pageNumber = parseInt(page, 10) || 1;
+    const pageSize = parseInt(limit, 10) || 10;
+    const offset = (pageNumber - 1) * pageSize;
+
+    let sqlQuery = profesoresAllQuery(offset, pageSize);
+    
+    sqlPaginate = ` ORDER BY id_profesor ASC OFFSET ${offset} ROWS  FETCH NEXT ${pageSize} ROWS ONLY`;
+
+
+    const connection = await conn();
+    const pagedResult = await connection.request().query(sqlQuery+sqlPaginate);
+
+    const countRequest = connection.request();
+    const countResult = await countRequest.query(getTotalProfesorCount());
+
+    connection.close();
+
+    // Obtiene el total de registros del resultado de la consulta de conteo
+    const totalRecords = countResult.recordset[0].total;
+
+    // Calcula el total de páginas
+    const total = Math.ceil(totalRecords / pageSize);
+
+    return {
+      success: true,
+      data: pagedResult.recordset ?? [],
+      count: pagedResult.recordset.length ?? 0,
+      total: totalRecords ?? 0, // El total de registros
+      pages: total ?? 0, // El total de páginas
+      current: offset
+    };
+  } catch (error) {
+    console.log(error.message);
+    return { success: false, message: error.message };
   }
 };
 
@@ -231,22 +260,24 @@ apiService.getProfesoresIdService = async ({ id }) => {
     const connection = await conn();
     const result = await connection.request().query(profesoresIdQuery({ id }));
     connection.close();
-    return {success: true, data: result.recordset };
+    return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
 apiService.deleteProfesorIdService = async ({ id }) => {
   try {
     const connection = await conn();
-    const result = await connection.request().query(profesorDeletequery({ id }));
+    const result = await connection
+      .request()
+      .query(profesorDeletequery({ id }));
     connection.close();
-    return {success: true, data: result.recordset };
+    return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
@@ -258,7 +289,7 @@ apiService.getMateriasService = async () => {
     return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
@@ -270,7 +301,7 @@ apiService.getMateriasIdService = async ({ id }) => {
     return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
@@ -279,7 +310,11 @@ apiService.getAlumnosService = async ({ filters }) => {
     let sqlQuery = alumnoAllQuery();
     let values = {};
 
-    if (filters && typeof filters === "object" && Object.keys(filters).length > 0) {
+    if (
+      filters &&
+      typeof filters === "object" &&
+      Object.keys(filters).length > 0
+    ) {
       let whereClause = "";
       let i = 0;
       for (const [key, value] of Object.entries(filters)) {
@@ -298,7 +333,7 @@ apiService.getAlumnosService = async ({ filters }) => {
 
     const connection = await conn();
     const request = connection.request();
-    
+
     const result = await request.query(sqlQuery);
     connection.close();
 
@@ -314,39 +349,67 @@ apiService.getAlumnosService = async ({ filters }) => {
 apiService.getAlumnosServiceID = async ({ id }) => {
   try {
     const connection = await conn();
-    const result = await connection.request().query(alumnoIdQuery({id: id}));
+    const result = await connection.request().query(alumnoIdQuery({ id: id }));
     connection.close();
     return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
 apiService.deleteAlumnoID = async ({ id }) => {
   try {
     const connection = await conn();
-    const result = await connection.request().query(alumnoDeleteQuery({id: id}));
+    const result = await connection
+      .request()
+      .query(alumnoDeleteQuery({ id: id }));
     connection.close();
     return { success: true, data: result.recordset };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
 
-apiService.getBitacoraService = async () => {
+apiService.getBitacoraService = async (page, limit) => {
   try {
+    const pageNumber = parseInt(page, 10) || 1;
+    const pageSize = parseInt(limit, 10) || 10;
+    const offset = (pageNumber - 1) * pageSize;
+
     const connection = await conn();
-    const result = await connection.request().query(getBitacoraQuery());
+    const pagedRequest = connection.request();
+
+    // Ejecuta la consulta de paginación
+    const pagedResult = await pagedRequest.query(
+      getBitacoraQuery(offset, pageSize)
+    );
+
+    // Ejecuta la consulta para obtener el conteo total de registros
+    const countRequest = connection.request();
+    const countResult = await countRequest.query(getTotalBitacoraCount());
+
     connection.close();
-    return { success: true, data: result.recordset };
+
+    // Obtiene el total de registros del resultado de la consulta de conteo
+    const totalRecords = countResult.recordset[0].total;
+
+    // Calcula el total de páginas
+    const total = Math.ceil(totalRecords / pageSize);
+
+    return {
+      success: true,
+      data: pagedResult.recordset ?? [],
+      count: pagedResult.recordset.length ?? 0,
+      total: totalRecords ?? 0, // El total de registros
+      pages: total ?? 0, // El total de páginas
+      current: pageNumber
+    };
   } catch (error) {
     console.log(error.message);
-    return{ success: false, message: error.message };
+    return { success: false, message: error.message };
   }
 };
-
 
 module.exports = apiService;
-

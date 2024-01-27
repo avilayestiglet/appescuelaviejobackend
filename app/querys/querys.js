@@ -1,22 +1,47 @@
-const conn = require('../config/conn');
-const { currentDatetime } = require('../utils/utils');
+const conn = require("../config/conn");
+const { currentDatetime } = require("../utils/utils");
 const querys = {};
 
-querys.userLoginQuery = ({ user }) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
+querys.userLoginQuery = ({
+  user,
+}) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
 where email = '${user.email}' and clave = '${user.password || user.clave}'`;
 
-querys.userMatriculaQuery = ({ user }) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
+querys.userMatriculaQuery = ({
+  user,
+}) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
 where email = '${user.email}' and clave = '${user.password}'`;
 
-querys.userQueryEmail = ({ user }) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
+querys.userQueryEmail = ({
+  user,
+}) => `select id_usuario, email, clave, tipo_usuario.id_tipo, tipo from usuario inner join tipo_usuario on usuario.id_tipo = tipo_usuario.id_tipo 
 where email = '${user.email}'`;
 
-querys.profesoresAllQuery = () => `select id_profesor, nombre_completo, cedula, direccion, edad, profesor.id_usuario, email, usuario.id_tipo, tipo_usuario.tipo tipo from profesor inner join usuario 
-on usuario.id_usuario = profesor.id_usuario inner join tipo_usuario on tipo_usuario.id_tipo = usuario.id_tipo`;
+querys.profesoresAllQuery =
+  () => `select 
+  id_profesor, 
+  nombre_completo, 
+  cedula, 
+  direccion, 
+  edad, 
+  profesor.id_usuario, 
+  email, 
+  usuario.id_tipo, 
+  tipo_usuario.tipo 
+  tipo from profesor inner join usuario 
+on usuario.id_usuario = profesor.id_usuario 
+inner join tipo_usuario on tipo_usuario.id_tipo = usuario.id_tipo
 
-querys.profesoresIdQuery = ({ id }) => `select * from profesor inner join usuario on usuario.id_usuario = profesor.id_usuario id_profesor = '${id}'`;
+`;
+querys.getTotalProfesorCount = () => `
+    SELECT COUNT(*) AS total
+    FROM profesor
+`;
+querys.profesoresIdQuery = ({ id }) =>
+  `select * from profesor inner join usuario on usuario.id_usuario = profesor.id_usuario id_profesor = '${id}'`;
 
-querys.profesorDeletequery = ({ id }) => `delete from profesor WHERE id_profesor = '${id}'`;
+querys.profesorDeletequery = ({ id }) =>
+  `delete from profesor WHERE id_profesor = '${id}'`;
 
 querys.profesorCreatequery = ({ profesor }) => `insert into profesor 
 (nombre_completo, cedula, direccion, edad, id_usuario) 
@@ -33,33 +58,49 @@ inner join tutor on tutor.id_tutor = alumno.id_tutor
 inner join curso on curso.id_curso = alumno.id_curso
 inner join usuario on usuario.id_usuario = alumno.id_usuario`;
 
-querys.alumnoIdQuery = ({ id }) => `SELECT * FROM ALUMNO  WHERE id_user = '${id}'`;
+querys.alumnoIdQuery = ({ id }) =>
+  `SELECT * FROM ALUMNO  WHERE id_user = '${id}'`;
 
-querys.alumnoCreate = ({ user }) => `INSERT INTO ALUMNO VALUES ()`
+querys.alumnoCreate = ({ user }) => `INSERT INTO ALUMNO VALUES ()`;
 
-querys.alumnoDeleteQuery = ({id}) => `delete from ALUMNO where id_user = '${id}'`;
+querys.alumnoDeleteQuery = ({ id }) =>
+  `delete from ALUMNO where id_user = '${id}'`;
 
 querys.matriculasQuery = () => `select * from matricula`;
 
-querys.createMatriculaQuery = (matricula) => `INSERT INTO matricula (matricula) VALUES ('${matricula}')`;
+querys.createMatriculaQuery = (matricula) =>
+  `INSERT INTO matricula (matricula) VALUES ('${matricula}')`;
 
-querys.tipoUsuarioQuery = ({ user }) => `select * from tipo_usuario where tipo = '${user.tipo_usuario}'`;
+querys.tipoUsuarioQuery = ({ user }) =>
+  `select * from tipo_usuario where tipo = '${user.tipo_usuario}'`;
 
-querys.registerQuery = ({ user }) => `insert into usuario (email, clave, id_tipo) 
+querys.registerQuery = ({
+  user,
+}) => `insert into usuario (email, clave, id_tipo) 
 values ('${user.email}', '${user.password}', '${user.id_tipo}')`;
 
-querys.registerBitacoraQuery = ({ user, activity }) => `insert into bitacora (id_usuario, fecha, actividad) 
+querys.registerBitacoraQuery = ({
+  user,
+  activity,
+}) => `insert into bitacora (id_usuario, fecha, actividad) 
 values (${user.id_usuario}, '${currentDatetime()}', '${activity}')`;
 
-querys.getBitacoraQuery = () => `
-        select id_bitacora
-        ,usr.id_usuario
-        ,usr.email
-        ,bi.fecha
-        ,bi.actividad
-        from bitacora as bi
-        inner join usuario as usr on bi.id_usuario = usr.id_usuario
-        order by id_bitacora desc
-    `
+querys.getBitacoraQuery = (offset, pageSize) => `
+    SELECT id_bitacora
+    ,usr.id_usuario
+    ,usr.email
+    ,bi.fecha
+    ,bi.actividad
+    FROM bitacora AS bi
+    INNER JOIN usuario AS usr ON bi.id_usuario = usr.id_usuario
+    ORDER BY id_bitacora ASC
+    OFFSET ${offset} ROWS 
+    FETCH NEXT ${pageSize} ROWS ONLY
+`;
+
+querys.getTotalBitacoraCount = () => `
+    SELECT COUNT(*) AS total
+    FROM bitacora
+`;
 
 module.exports = querys;
