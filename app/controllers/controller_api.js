@@ -129,7 +129,7 @@ controllerApi.createProfesorApi = async (req, res, next) => {
     return;
   } else {
     req.result = {
-      status: 500,
+      status: res.statusCode,
       error: translate({
         x:
           result?.message ?? "internal server error" ?? "internal server error",
